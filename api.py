@@ -12,10 +12,9 @@ load_dotenv()
 
 app = FastAPI(title="RAG Hallucination Detector")
 
-# ── Config ────────────────────────────────────────────────────
+
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY")
 
-# ── Load resources once at startup ────────────────────────────
 print("Loading embedding model...")
 embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 vectorstore = Chroma(
@@ -25,7 +24,6 @@ vectorstore = Chroma(
 client = Groq(api_key=GROQ_API_KEY)
 print("Ready!")
 
-# ── Request/Response models ───────────────────────────────────
 class QuestionRequest(BaseModel):
     question: str
 
@@ -39,7 +37,7 @@ class RAGResponse(BaseModel):
     pages: list
     time_taken: float
 
-# ── Core functions ────────────────────────────────────────────
+
 def generate_answer(question):
     all_chunks = vectorstore.similarity_search(question, k=8)
     chunks = [c for c in all_chunks if c.metadata.get("page", 0) != 0][:4]
@@ -137,5 +135,4 @@ def ask(request: QuestionRequest):
         time_taken=round(time.time() - start, 1)
     )
 
-# Mount static files last
 app.mount("/static", StaticFiles(directory="static"), name="static")
