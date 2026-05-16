@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>RAG Hallucination Detector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #f5f5f5;
+      color: #1a1a1a;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 760px;
+      margin: 0 auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    header p {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e5e5e5;
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .samples {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 16px;
+    }
+
+    .sample-btn {
+      background: #f0f0f0;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .sample-btn:hover { background: #e0e0e0; }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 16px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 15px;
+      outline: none;
+      transition: border 0.2s;
+    }
+
+    input[type="text"]:focus { border-color: #555; }
+
+    button#ask-btn {
+      background: #1a1a1a;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      padding: 12px 22px;
+      font-size: 15px;
+      cursor: pointer;
+      transition: background 0.2s;
+      white-space: nowrap;
+    }
+
+    button#ask-btn:hover { background: #333; }
+    button#ask-btn:disabled { background: #999; cursor: not-allowed; }
+
+    .section-label {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #888;
+      margin-bottom: 10px;
+    }
+
+    .answer-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: #1a1a1a;
+    }
+
+    .pages-tag {
+      display: inline-block;
+      background: #f0f0f0;
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-size: 12px;
+      color: #555;
+      margin-top: 12px;
+    }
+
+    .score-box {
+      border-radius: 10px;
+      padding: 20px 24px;
+      margin-bottom: 20px;
+    }
+
+    .score-box.faithful   { background: #f0faf4; border: 1px solid #86efac; }
+    .score-box.partial    { background: #fffbeb; border: 1px solid #fcd34d; }
+    .score-box.hallucinated { background: #fff1f1; border: 1px solid #fca5a5; }
+
+    .score-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .score-badge {
+      font-size: 22px;
+      font-weight: 700;
+    }
+
+    .score-badge.faithful   { color: #15803d; }
+    .score-badge.partial    { color: #b45309; }
+    .score-badge.hallucinated { color: #b91c1c; }
+
+    .score-number {
+      font-size: 15px;
+      color: #555;
+    }
+
+    .progress-bar {
+      height: 6px;
+      background: #e5e5e5;
+      border-radius: 3px;
+      overflow: hidden;
+      margin-bottom: 14px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 0.5s ease;
+    }
+
+    .progress-fill.faithful     { background: #22c55e; }
+    .progress-fill.partial      { background: #f59e0b; }
+    .progress-fill.hallucinated { background: #ef4444; }
+
+    .score-reason {
+      font-size: 14px;
+      color: #444;
+      margin-bottom: 8px;
+    }
+
+    .unsupported {
+      font-size: 13px;
+      color: #b45309;
+      background: #fef9c3;
+      border-radius: 6px;
+      padding: 8px 12px;
+      margin-top: 8px;
+    }
+
+    .unsupported.none {
+      color: #15803d;
+      background: #f0fdf4;
+    }
+
+    .spinner {
+      text-align: center;
+      padding: 40px;
+      color: #888;
+      font-size: 14px;
+    }
+
+    .history-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #f0f0f0;
+      font-size: 14px;
+    }
+
+    .history-row:last-child { border-bottom: none; }
+
+    .history-score {
+      font-weight: 600;
+      min-width: 36px;
+    }
+
+    .avg-score {
+      text-align: center;
+      padding: 12px;
+      background: #f5f5f5;
+      border-radius: 8px;
+      font-size: 14px;
+      margin-top: 12px;
+      color: #555;
+    }
+
+    #result-section { display: none; }
+    #history-section { display: none; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <h1>🔍 RAG Hallucination Detector</h1>
+    <p>Ask questions about the OpenAI Agents Guide · Answers scored for faithfulness</p>
+  </header>
+
+  <!-- Input card -->
+  <div class="card">
+    <div class="samples">
+      <button class="sample-btn" onclick="fillQ('What is an agent?')">What is an agent?</button>
+      <button class="sample-btn" onclick="fillQ('What are guardrails in agents?')">What are guardrails?</button>
+      <button class="sample-btn" onclick="fillQ('When should you build an agent?')">When to build an agent?</button>
+      <button class="sample-btn" onclick="fillQ('How does the triage agent hand off to other agents?')">How does triage work?</button>
+    </div>
+    <div class="input-row">
+      <input type="text" id="question-input" placeholder="Ask anything about AI agents..." />
+      <button id="ask-btn" onclick="askQuestion()">Ask ↗</button>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div id="loading" class="spinner" style="display:none">
+    ⏳ Retrieving from PDF and scoring faithfulness...
+  </div>
+
+  <!-- Result -->
+  <div id="result-section">
+
+    <div class="card">
+      <div class="section-label">Answer</div>
+      <div class="answer-text" id="answer-text"></div>
+      <div class="pages-tag" id="pages-tag"></div>
+    </div>
+
+    <div id="score-box" class="score-box">
+      <div class="score-header">
+        <span class="score-badge" id="score-badge"></span>
+        <span class="score-number" id="score-number"></span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+      <div class="score-reason" id="score-reason"></div>
+      <div class="unsupported" id="unsupported-box"></div>
+    </div>
+
+  </div>
+
+  <!-- History -->
+  <div id="history-section" class="card">
+    <div class="section-label">Session History</div>
+    <div id="history-list"></div>
+    <div class="avg-score" id="avg-score"></div>
+  </div>
+
+</div>
+
+<script>
+  const history = [];
+
+  function fillQ(q) {
+    document.getElementById("question-input").value = q;
+  }
+
+  function getClass(score) {
+    if (score >= 0.8) return "faithful";
+    if (score >= 0.5) return "partial";
+    return "hallucinated";
+  }
+
+  function getEmoji(score) {
+    if (score >= 0.8) return "✅ FAITHFUL";
+    if (score >= 0.5) return "⚠️ PARTIALLY FAITHFUL";
+    return "❌ HALLUCINATED";
+  }
+
+  async function askQuestion() {
+    const question = document.getElementById("question-input").value.trim();
+    if (!question) return;
+
+    // Show loading
+    document.getElementById("loading").style.display = "block";
+    document.getElementById("result-section").style.display = "none";
+    document.getElementById("ask-btn").disabled = true;
+
+    try {
+      const res = await fetch("/ask", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ question })
+      });
+
+      const data = await res.json();
+      const cls = getClass(data.score);
+
+      // Fill answer
+      document.getElementById("answer-text").textContent = data.answer;
+      document.getElementById("pages-tag").textContent =
+        `Retrieved from pages: ${data.pages.join(", ")} · ${data.time_taken}s`;
+
+      // Fill score
+      const scoreBox = document.getElementById("score-box");
+      scoreBox.className = `score-box ${cls}`;
+
+      const badge = document.getElementById("score-badge");
+      badge.textContent = getEmoji(data.score);
+      badge.className = `score-badge ${cls}`;
+
+      document.getElementById("score-number").textContent = `Score: ${data.score}`;
+      document.getElementById("progress-fill").style.width = `${data.score * 100}%`;
+      document.getElementById("progress-fill").className = `progress-fill ${cls}`;
+      document.getElementById("score-reason").textContent = `Reason: ${data.reason}`;
+
+      const unsupportedBox = document.getElementById("unsupported-box");
+      if (!data.unsupported_claims || data.unsupported_claims.toLowerCase() === "none") {
+        unsupportedBox.textContent = "✅ No unsupported claims found";
+        unsupportedBox.className = "unsupported none";
+      } else {
+        unsupportedBox.textContent = `⚠️ Unsupported claims: ${data.unsupported_claims}`;
+        unsupportedBox.className = "unsupported";
+      }
+
+      // Show result
+      document.getElementById("result-section").style.display = "block";
+
+      // Add to history
+      history.push({ question, score: data.score, verdict: data.verdict });
+      renderHistory();
+
+    } catch (err) {
+      alert("Error: " + err.message);
+    } finally {
+      document.getElementById("loading").style.display = "none";
+      document.getElementById("ask-btn").disabled = false;
+    }
+  }
+
+  function renderHistory() {
+    if (history.length === 0) return;
+    document.getElementById("history-section").style.display = "block";
+
+    const list = document.getElementById("history-list");
+    list.innerHTML = [...history].reverse().map(h => {
+      const cls = getClass(h.score);
+      const emoji = h.score >= 0.8 ? "✅" : h.score >= 0.5 ? "⚠️" : "❌";
+      return `<div class="history-row">
+        <span>${emoji}</span>
+        <span style="flex:1">${h.question}</span>
+        <span class="history-score" style="color:${cls === 'faithful' ? '#15803d' : cls === 'partial' ? '#b45309' : '#b91c1c'}">${h.score}</span>
+      </div>`;
+    }).join("");
+
+    const avg = (history.reduce((s, h) => s + h.score, 0) / history.length).toFixed(2);
+    document.getElementById("avg-score").textContent =
+      `Average faithfulness score this session: ${avg}`;
+  }
+
+  // Allow Enter key to submit
+  document.getElementById("question-input")
+    .addEventListener("keydown", e => { if (e.key === "Enter") askQuestion(); });
+</script>
+</body>
+</html>
