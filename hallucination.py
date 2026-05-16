@@ -15,9 +15,7 @@ vectorstore = Chroma(
 )
 client = Groq(api_key=GROQ_API_KEY)
 
-# ============================================================
-# STEP 1 — Generate answer (same as Phase 2)
-# ============================================================
+
 
 def generate_answer(question):
     all_chunks = vectorstore.similarity_search(question, k=8)
@@ -46,9 +44,7 @@ Answer:"""
     answer = response.choices[0].message.content
     return answer, context, chunks
 
-# ============================================================
-# STEP 2 — Score faithfulness (hallucination detection)
-# ============================================================
+
 
 def score_faithfulness(question, answer, context):
     scoring_prompt = f"""You are an expert at detecting hallucinations in AI-generated answers.
@@ -82,12 +78,10 @@ UNSUPPORTED CLAIMS: [list any specific claims not found in context, or "None"]""
     )
     return response.choices[0].message.content
 
-# ============================================================
-# STEP 3 — Parse the score and print result
-# ============================================================
+
 
 def parse_score(scoring_output):
-    score = 0.5  # default
+    score = 0.5  
     for line in scoring_output.split("\n"):
         if line.startswith("SCORE:"):
             try:
@@ -104,9 +98,7 @@ def get_badge(score):
     else:
         return "HALLUCINATED"
 
-# ============================================================
-# STEP 4 — Full pipeline
-# ============================================================
+
 
 def ask_with_scoring(question):
     print("\n" + "="*60)
@@ -127,9 +119,7 @@ def ask_with_scoring(question):
     print(f"\n{badge} (Score: {score})")
     print(f"\nDetailed scoring:\n{scoring_output}")
 
-# ============================================================
-# Run on 3 questions
-# ============================================================
+
 
 ask_with_scoring("What is an agent?")
 ask_with_scoring("When should you build an agent?")
