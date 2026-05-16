@@ -234,7 +234,6 @@
     <p>Ask questions about the OpenAI Agents Guide · Answers scored for faithfulness</p>
   </header>
 
-  <!-- Input card -->
   <div class="card">
     <div class="samples">
       <button class="sample-btn" onclick="fillQ('What is an agent?')">What is an agent?</button>
@@ -248,7 +247,7 @@
     </div>
   </div>
 
-  <!-- Loading -->
+ 
   <div id="loading" class="spinner" style="display:none">
     ⏳ Retrieving from PDF and scoring faithfulness...
   </div>
@@ -308,7 +307,6 @@
     const question = document.getElementById("question-input").value.trim();
     if (!question) return;
 
-    // Show loading
     document.getElementById("loading").style.display = "block";
     document.getElementById("result-section").style.display = "none";
     document.getElementById("ask-btn").disabled = true;
